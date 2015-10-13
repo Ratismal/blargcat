@@ -10,7 +10,7 @@ try_base = False
 dir = hexchat.get_info("configdir") + "\\addons\\blargbot\\"
 
 start_time = datetime.now()
-eat_faces = True
+eat_faces = False
 authed_user = None
 pass_dir = hexchat.get_info("configdir") + "\\addons\\blargbot-password.txt"
 if not os.path.isfile(pass_dir):
