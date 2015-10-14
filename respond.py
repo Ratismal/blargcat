@@ -26,16 +26,18 @@ f_pass.close()
 channel = "#hysteriaunleashed"
 
 
-def on_mention(word, word_eol, userdata):
-    if "thanks blargcat" in word[1].lower() or "thanks, blargcat" in word[1].lower() or "thank you blargcat" in word[1].lower() or "thank you, blargcat" in word[1].lower():
-      say("No problem.")
-    elif eat_faces:
-        hexchat.command("say \00304I will eat your fucking face.")
-    return hexchat.EAT_NONE
+
 
 
 def say(message):
     hexchat.command("say " + message)
+
+def on_mention(word, word_eol, userdata):
+    if "thanks blargcat" in word[1].lower() or "thanks, blargcat" in word[1].lower() or "thank you blargcat" in word[1].lower() or "thank you, blargcat" in word[1].lower():
+      say("No problem.")
+    elif eat_faces:
+        say("\00304I will eat your fucking face, " + hexchat.strip(word[0], len(word[0]), 3) + ".")
+    return hexchat.EAT_NONE
 
 
 def eat():
@@ -134,6 +136,8 @@ def base_commands(word, word_eol, userdata):
         say("blargcat is running \0039" + __module_name__ + "\0031 version\0039 " + __module_version__)
     elif word[1].startswith("mail"):
         mail(word)
+    elif word[1] == "douptime":
+        say(".uptime")
 
 
 def pm_commands(word, word_eol, userdata):
@@ -195,6 +199,11 @@ def on_join(word, word_eol, userdata):
 
 
 def on_command(word, word_eol, userdata):
+    check = hexchat.strip(word[0], len(word[0]), 3).lower()
+    if check == "hu_infinity" or check == "blockrim_realms" or check == "bogus_server":
+      if '>' in word[1]:
+        index = word[1].index('>') + 2
+        word[1] = word[1][index:]
     if word[1].startswith(".") or word[1].startswith("!"):
       if word[1].startswith("."):
         word[1] = word[1].replace('.', '', 1)
