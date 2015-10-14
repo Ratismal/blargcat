@@ -190,7 +190,7 @@ def on_join(word, word_eol, userdata):
     else:
       f = open(dir + receiver.lower() + ".txt", 'a')
       f.close()
-      say("Welcome, " + receiver + ".")
+      say("Welcome, " + receiver + ". I hope you enjoy your stay.")
     return hexchat.EAT_NONE
 
 
