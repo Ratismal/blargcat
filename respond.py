@@ -7,24 +7,29 @@ from datetime import datetime
 import os
 
 try_base = False
-dir = hexchat.get_info("configdir") + "\\addons\\blargbot\\"
+dir = hexchat.get_info("configdir") + "/addons/blargbot/"
 
 start_time = datetime.now()
 eat_faces = False
 authed_user = None
-pass_dir = hexchat.get_info("configdir") + "\\addons\\blargbot-password.txt"
+pass_dir = hexchat.get_info("configdir") + "/addons/blargbot-password.txt"
 if not os.path.isfile(pass_dir):
     f_pass = open(pass_dir, 'a')
     f_pass.write("password")
     f_pass.close()
 f_pass = open(pass_dir, 'r')
-password = f_pass.read()
+first = True
+for line in f_pass:
+  if first:
+    password = line.replace('\n', '')
 f_pass.close()
 channel = "#hysteriaunleashed"
 
 
 def on_mention(word, word_eol, userdata):
-    if eat_faces:
+    if "thanks blargcat" in word[1].lower() or "thanks, blargcat" in word[1].lower() or "thank you blargcat" in word[1].lower() or "thank you, blargcat" in word[1].lower():
+      say("No problem.")
+    elif eat_faces:
         hexchat.command("say \00304I will eat your fucking face.")
     return hexchat.EAT_NONE
 
@@ -56,14 +61,14 @@ def get_uptime(word):
 def mail_send(word):
     sender = word[0]
     buffer_word = word[1]
-    buffer_word = buffer_word.replace(".mail send ", "", 1)
+    buffer_word = buffer_word.replace("mail send ", "", 1)
     index = buffer_word.index(" ")
     receiver = buffer_word[:index]
     buffer_word = buffer_word.replace(receiver + " ", "", 1)
     global dir
-    f = open(dir + receiver + ".txt", 'a')
+    f = open(dir + receiver.lower() + ".txt", 'a')
     sender = hexchat.strip(sender, len(sender), 3)
-    timestamp = datetime.strftime(datetime.now(), '[%y-%m-%d %H:%M:%S] ')
+    timestamp = datetime.strftime(datetime.now(), '[%m/%d %H:%M] ')
     f.write(timestamp + sender + "> " + buffer_word + "\n")
     f.close()
     say("Message queued: '" + buffer_word + "' from " + sender + " at " + timestamp + ".")
@@ -73,58 +78,61 @@ def mail_read(word):
     receiver = word[0]
     receiver = hexchat.strip(receiver, len(receiver), 3)
     global dir
-    f = open(dir + receiver + ".txt", 'r')
-    if os.path.getsize(dir + receiver + ".txt") > 0:
-        say("You received the following messages:")
-        for line in f:
-            line = line.replace('\n', "")
-            say(line)
-        say("To delete your messages, type '.mail delete'")
+    if os.path.isfile(dir + receiver.lower() + ".txt"):
+      f = open(dir + receiver.lower() + ".txt", 'r')
+      if os.path.getsize(dir + receiver.lower() + ".txt") > 0:
+          say("You received the following messages:")
+          for line in f:
+              line = line.replace('\n', "")
+              say(line)
+          say("To delete your messages, type '!mail delete'")
+      else:
+          say("You have no messages.")
     else:
-        say("You have no messages.")
-
+      say("You have no messages.")
 
 def mail_delete(word):
     receiver = word[0]
     receiver = hexchat.strip(receiver, len(receiver), 3)
-    say("Deleting all of " + receiver + "'s messages")
+    say("Deleting all of " + receiver.lower() + "'s messages")
     global dir
-    f = open(dir + receiver + ".txt", 'r+')
-    f.truncate()
-    f.close()
+    if os.path.isfile(dir + receiver.lower() + ".txt"):
+      f = open(dir + receiver.lower() + ".txt", 'r+')
+      f.truncate()
+      f.close()
 
 
 def mail(word):
-    if word[1] == ".mail help" or word[1] == ".mail":
+    if word[1] == "mail help" or word[1] == "mail":
         say("Mail commands: read, send, delete, help")
-    elif word[1].startswith(".mail send "):
+    elif word[1].startswith("mail send "):
         mail_send(word)
-    elif word[1] == ".mail read":
+    elif word[1] == "mail read":
         mail_read(word)
-    elif word[1] == ".mail delete":
+    elif word[1] == "mail delete":
         mail_delete(word)
     else:
         say("Unknown command. Too many or too little parameters.")
 
 
 def base_commands(word, word_eol, userdata):
-    if word[1] == ".help":
+    if word[1] == "help":
         say("Valid commands: help, currenttime, eat, time, uptime, version, mail")
-    elif word[1] == ".time":
+    elif word[1] == "time":
         say("blargcat was started at " + datetime.strftime(start_time, '%Y-%m-%d %H:%M:%S'))
-    elif word[1] == ".currenttime":
+    elif word[1] == "currenttime":
         say("The current time for blargcat is " + datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'))
-    elif word[1] == ".uptime":
+    elif word[1] == "uptime":
         get_uptime(word)
-    elif word[1] == ".eat":
+    elif word[1] == "eat":
         eat()
     # elif word[1] == ".tps":
     #    say("TPS:\0033 19.97")
     # elif word[1] == ".list":
     #    say("\00312Online (2/20): \0034[Admin] \00315blargcat\0031, \0039[Member] \00315FacePolice")
-    elif word[1] == ".version":
+    elif word[1] == "version":
         say("blargcat is running \0039" + __module_name__ + "\0031 version\0039 " + __module_version__)
-    elif word[1].startswith(".mail"):
+    elif word[1].startswith("mail"):
         mail(word)
 
 
@@ -132,35 +140,35 @@ def pm_commands(word, word_eol, userdata):
     global authed_user
     global password
     global channel
-    if word[1] == ".auth":
+    if word[1] == "auth":
         if authed_user == None:
             say("There is no authed user")
         else:
             say("Currently authed user is " + authed_user)
-    elif word[1].startswith(".auth "):
-        if word[1] == ".auth " + password:
+    elif word[1].startswith("auth "):
+        if word[1] == "auth " + password:
             authed_user = word[0]
             say("Login successful. " + authed_user + " is now authed.")
         else:
             say("Invalid password. Try again, or do '.auth' to see who is currently authed.")
-    elif word[1].startswith(".say "):
+    elif word[1].startswith("say "):
         if word[0] == authed_user:
             hexchat.command("doat " + channel + " say " + word[1][5:])
         else:
             say("I'm sorry, " + word[
                 0] + ", but you have no permissions to do that. Try logging in with .auth <password>")
-    elif word[1].startswith(".channel "):
+    elif word[1].startswith("channel "):
         if word[0] == authed_user:
             channel = word[1][9:]
             say("Channel set to " + channel)
         else:
             say("I'm sorry, " + word[
                 0] + ", but you have no permissions to do that. Try logging in with .auth <password>")
-    elif word[1] == ".channel":
+    elif word[1] == "channel":
         say("Currently selected channel is " + channel)
-    elif word[1] == ".eat":
+    elif word[1] == "eat":
         eat()
-    elif word[1] == ".iseat":
+    elif word[1] == "iseat":
         global eat_faces
         if eat_faces:
             say("I want to eat faces.")
@@ -174,20 +182,37 @@ def pm_commands(word, word_eol, userdata):
 def on_join(word, word_eol, userdata):
     receiver = word[0]
     receiver = hexchat.strip(receiver, len(receiver), 3)
-    if os.path.getsize(dir + receiver + ".txt") > 0:
-        say("Welcome back, " + receiver + ". You have unread messages. Type '.mail read' to read them.")
+    if os.path.isfile(dir + receiver.lower() + ".txt"):
+     if os.path.getsize(dir + receiver.lower() + ".txt") > 0:
+        say("Welcome back, " + receiver + ". You have unread messages. Type '!mail read' to read them.")
+     else:
+        say("Welcome back, " + receiver + ".")
+    else:
+      f = open(dir + receiver.lower() + ".txt", 'a')
+      f.close()
+      say("Welcome, " + receiver + ".")
     return hexchat.EAT_NONE
 
 
 def on_command(word, word_eol, userdata):
-    base_commands(word, word_eol, userdata)
+    if word[1].startswith(".") or word[1].startswith("!"):
+      if word[1].startswith("."):
+        word[1] = word[1].replace('.', '', 1)
+      else:
+        word[1] = word[1].replace('!', '', 1)
+      base_commands(word, word_eol, userdata)
     return hexchat.EAT_NONE
 
 
 def on_pm(word, word_eol, userdata):
-    pm_commands(word, word_eol, userdata)
-    global try_base
-    if try_base:
+    if word[1].startswith(".") or word[1].startswith("!"):
+      if word[1].startswith("."):
+        word[1] = word[1].replace('.', '', 1)
+      else:
+        word[1] = word[1].replace('!', '', 1)
+      pm_commands(word, word_eol, userdata)
+      global try_base
+      if try_base:
         base_commands(word, word_eol, userdata)
     return hexchat.EAT_NONE
 
