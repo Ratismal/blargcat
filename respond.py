@@ -53,7 +53,7 @@ def get_uptime(word):
     days, remainderD = divmod(s, 86400)
     hours, remainderH = divmod(remainderD, 3600)
     minutes, seconds = divmod(remainderH, 60)
-    time_string = '%s days %s hours %s minutes %s seconds.' % (days, hours, minutes, seconds)
+    time_string = '%s days %s hours %s minutes %s seconds.' % (int(days), int(hours), int(minutes), int(seconds))
     say("Catter uptime: " + time_string)
 
 
