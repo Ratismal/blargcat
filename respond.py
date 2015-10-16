@@ -1,5 +1,5 @@
 __module_name__ = "blargbot"
-__module_version__ = "1.1.5"
+__module_version__ = "1.1.6"
 __module_description__ = "Blargcat bot."
 
 import hexchat
@@ -26,9 +26,6 @@ f_pass.close()
 channel = "#hysteriaunleashed"
 
 
-
-
-
 def say(message):
     hexchat.command("say " + message)
 
@@ -52,8 +49,8 @@ def eat():
 
 def get_uptime(word):
     time_elapsed = datetime.now() - start_time
-    s = time_elapsed.total_seconds()
-    days, remainderD = divmod(s, 3600 * 24)
+    s = time_elapsed.total_seconds
+    days, remainderD = divmod(s, 86400)
     hours, remainderH = divmod(remainderD, 3600)
     minutes, seconds = divmod(remainderH, 60)
     time_string = '%s days %s hours %s minutes %s seconds.' % (days, hours, minutes, seconds)
@@ -119,7 +116,7 @@ def mail(word):
 
 def base_commands(word, word_eol, userdata):
     if word[1] == "help":
-        say("Valid commands: help, currenttime, eat, time, uptime, version, mail")
+        say("Valid commands: help, currenttime, eat, time, uptime, douptime, version, mail")
     elif word[1] == "time":
         say("blargcat was started at " + datetime.strftime(start_time, '%Y-%m-%d %H:%M:%S'))
     elif word[1] == "currenttime":
@@ -157,10 +154,9 @@ def pm_commands(word, word_eol, userdata):
             say("Invalid password. Try again, or do '.auth' to see who is currently authed.")
     elif word[1].startswith("say "):
         if word[0] == authed_user:
-            hexchat.command("doat " + channel + " say " + word[1][5:])
+            hexchat.command("doat " + channel + " say " + word[1].replace('say ', '', 1))
         else:
-            say("I'm sorry, " + word[
-                0] + ", but you have no permissions to do that. Try logging in with .auth <password>")
+            say("I'm sorry, " + word[0] + ", but you have no permissions to do that. Try logging in with .auth <password>")
     elif word[1].startswith("channel "):
         if word[0] == authed_user:
             channel = word[1][9:]
