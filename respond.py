@@ -49,7 +49,7 @@ def eat():
 
 def get_uptime(word):
     time_elapsed = datetime.now() - start_time
-    s = time_elapsed.total_seconds
+    s = time_elapsed.total_seconds()
     days, remainderD = divmod(s, 86400)
     hours, remainderH = divmod(remainderD, 3600)
     minutes, seconds = divmod(remainderH, 60)
