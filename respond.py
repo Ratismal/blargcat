@@ -1,33 +1,87 @@
 __module_name__ = "blargbot"
-__module_version__ = "1.1.6"
-__module_description__ = "Blargcat bot."
+__module_version__ = "1.1.7"
+__module_description__ = "Blargbot: IRC Bot"
 
 import hexchat
 from datetime import datetime
 import os
+import yaml
+import threading
 
 try_base = False
 dir = hexchat.get_info("configdir") + "/addons/blargbot/"
 
 start_time = datetime.now()
+
 eat_faces = False
 authed_user = None
-pass_dir = hexchat.get_info("configdir") + "/addons/blargbot-password.txt"
-if not os.path.isfile(pass_dir):
-    f_pass = open(pass_dir, 'a')
-    f_pass.write("password")
+conf_dir = hexchat.get_info("configdir") + "/addons/blargbot.yaml"
+if not os.path.isfile(conf_dir):
+    f_pass = open(conf_dir, 'a')
+    f_pass.write("pass: password\nchannel: #hysteriaunleashed\neat_faces: False\ndefault_auth:\nnotif_timer_enabled: True\nnotif_timer_value: 600")
     f_pass.close()
-f_pass = open(pass_dir, 'r')
-first = True
-for line in f_pass:
-  if first:
-    password = line.replace('\n', '')
-f_pass.close()
-channel = "#hysteriaunleashed"
+f_pass = open(conf_dir, "r")
+channel = None
+conf = yaml.load(f_pass)
+password = None
+notif_timer_enabled = False
+notif_timer_value = None
+notify_hook = None
 
+def reload_config():
+    global password
+    global conf
+    global authed_user
+    global eat_faces
+    global channel
+    global notif_timer_enabled
+    global notif_timer_value
+    f_pass = open(conf_dir, "r")
+    conf = yaml.load(f_pass)
+    channel = conf["channel"]
+    password = conf["pass"]
+    authed_user = conf["default_auth"]
+    eat_faces = conf["eat_faces"]
+    notif_timer_enabled = conf["notif_timer_enabled"] 
+    notif_timer_value = int(conf["notif_timer_value"] * 1000)
+
+reload_config()
 
 def say(message):
     hexchat.command("say " + message)
+
+def notice(name, message):
+    hexchat.command("notice " + name + " " + message)
+
+
+def notify(userdata):
+  print("Notifying users with mail")
+  channels = hexchat.get_list("channels")
+  context_list = []
+  users = []
+  for i in channels:
+   if i.type == 2:
+    context_list.append(i.context)
+  for i in context_list:
+    user_list = i.get_list("users")
+    for ii in user_list:
+     if users.count(ii.nick) == 0:
+       users.append(ii.nick)
+  #print("Next: ")
+  for i in users:
+   #print(i)
+   if os.path.isfile(dir + i.lower() + ".txt"):
+     if os.path.getsize(dir + i.lower() + ".txt") > 0:
+       notice(i, "You have unread messages. Type '!mail read' to read them.")
+  return 1
+
+if notif_timer_enabled:
+  notify_hook = hexchat.hook_timer(notif_timer_value, notify)
+  notify(None)
+
+def raw(message):
+    hexchat.command(message)
+
 
 def on_mention(word, word_eol, userdata):
     if "thanks blargcat" in word[1].lower() or "thanks, blargcat" in word[1].lower() or "thank you blargcat" in word[1].lower() or "thank you, blargcat" in word[1].lower():
@@ -80,15 +134,15 @@ def mail_read(word):
     if os.path.isfile(dir + receiver.lower() + ".txt"):
       f = open(dir + receiver.lower() + ".txt", 'r')
       if os.path.getsize(dir + receiver.lower() + ".txt") > 0:
-          say("You received the following messages:")
+          notice(receiver, "You received the following messages:")
           for line in f:
               line = line.replace('\n', "")
-              say(line)
-          say("To delete your messages, type '!mail delete'")
+              notice(receiver, line)
+          notice(receiver, "To delete your messages, type '!mail delete'")
       else:
-          say("You have no messages.")
+          notice(receiver, "You have no messages.")
     else:
-      say("You have no messages.")
+      notice(receiver, "You have no messages.")
 
 def mail_delete(word):
     receiver = word[0]
@@ -115,6 +169,7 @@ def mail(word):
 
 
 def base_commands(word, word_eol, userdata):
+   if hexchat.get_info("network") != "Twitch":
     if word[1] == "help":
         say("Valid commands: help, currenttime, eat, time, uptime, douptime, version, mail")
     elif word[1] == "time":
@@ -125,6 +180,10 @@ def base_commands(word, word_eol, userdata):
         get_uptime(word)
     elif word[1] == "eat":
         eat()
+    elif word[1] == "reload":
+        reload_config()
+        hexchat.unhook(notify_hook)
+        hexchat.hook_timer(notif_timer_value, notify)
     # elif word[1] == ".tps":
     #    say("TPS:\0033 19.97")
     # elif word[1] == ".list":
@@ -135,7 +194,14 @@ def base_commands(word, word_eol, userdata):
         mail(word)
     elif word[1] == "douptime":
         say(".uptime")
-
+    elif word[1].startswith("raw "):
+      global authed_user
+      print(authed_user)
+      print(word[0])
+      if authed_user == hexchat.strip(word[0], len(word[0]), 3):
+        raw(word[1].replace("raw ", ""))
+      else:
+        say("You are not authed!")
 
 def pm_commands(word, word_eol, userdata):
     global authed_user
@@ -184,9 +250,9 @@ def on_join(word, word_eol, userdata):
     receiver = hexchat.strip(receiver, len(receiver), 3)
     if os.path.isfile(dir + receiver.lower() + ".txt"):
      if os.path.getsize(dir + receiver.lower() + ".txt") > 0:
-        say("Welcome back, " + receiver + ". You have unread messages. Type '!mail read' to read them.")
+        notice(receiver, "Welcome back, " + receiver + ". You have unread messages. Type '!mail read' to read them.")
      else:
-        say("Welcome back, " + receiver + ".")
+        notice(receiver, "Welcome back, " + receiver + ".")
     else:
       f = open(dir + receiver.lower() + ".txt", 'a')
       f.close()
@@ -195,6 +261,7 @@ def on_join(word, word_eol, userdata):
 
 
 def on_command(word, word_eol, userdata):
+   if hexchat.get_info("network") != "twitch":
     check = hexchat.strip(word[0], len(word[0]), 3).lower()
     if check == "hu_infinity" or check == "blockrim_realms" or check == "bogus_server":
       if '>' in word[1]:
@@ -206,10 +273,11 @@ def on_command(word, word_eol, userdata):
       else:
         word[1] = word[1].replace('!', '', 1)
       base_commands(word, word_eol, userdata)
-    return hexchat.EAT_NONE
+   return hexchat.EAT_NONE
 
 
 def on_pm(word, word_eol, userdata):
+   if hexchat.get_info("network") != "twitch":
     if word[1].startswith(".") or word[1].startswith("!"):
       if word[1].startswith("."):
         word[1] = word[1].replace('.', '', 1)
@@ -219,11 +287,12 @@ def on_pm(word, word_eol, userdata):
       global try_base
       if try_base:
         base_commands(word, word_eol, userdata)
-    return hexchat.EAT_NONE
+   return hexchat.EAT_NONE
 
 
 if not os.path.exists(dir):
     os.makedirs(dir)
+
 
 hexchat.hook_print("Channel Msg Hilight", on_mention)
 hexchat.hook_print("Channel Message", on_command)
